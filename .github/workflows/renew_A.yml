@@ -2,7 +2,7 @@ name: Auto Renew Bot-hosting_A
 
 on:
   schedule:
-    - cron: '50 0 * * *'    # 每天 UTC 0:50 触发（北京时间 8:50），由脚本判断是否执行
+    - cron: '50 0 * * *'    # 每天 UTC 0:50 触发（北京时间 8:50），由脚本判断是否执行，两天一续
   workflow_dispatch:        # 允许手动触发
 
 jobs:
