@@ -65,7 +65,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           DISCORD_TOKEN_A: ${{ secrets.DISCORD_TOKEN_A }}
           SESSION_TOKEN_A: ${{ secrets.SESSION_TOKEN_A }}
-          TG_AOT_TOKEN: ${{ secrets.TG_AOT_TOKEN }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: |
           xvfb-run --auto-servernum python3 app_A.py
