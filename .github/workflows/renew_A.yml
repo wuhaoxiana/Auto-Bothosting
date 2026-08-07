@@ -20,7 +20,7 @@ jobs:
       - name: Check interval
         id: check
         run: |
-          START="2026-07-27"
+          START="2026-08-09"
           TODAY=$(date -u +%F)
           start_sec=$(date -d "$START" +%s)
           today_sec=$(date -d "$TODAY" +%s)
