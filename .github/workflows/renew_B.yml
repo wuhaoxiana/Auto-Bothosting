@@ -1,9 +1,9 @@
-name: Auto Renew Bot-hosting_B
+name: Auto Renew Bot-Hosting_B
 
 on:
   schedule:
     - cron: '50 0 * * *'    # 每天 UTC 0:50 触发（北京时间 8:50），由脚本判断是否执行，两天一续
-  workflow_dispatch:        # 允许手动触发
+  workflow_dispatch:         # 允许手动触发
 
 jobs:
   Renew-bot:
@@ -13,11 +13,8 @@ jobs:
       contents: read
 
     steps:
-      # 1. 拉取仓库代码
-      - uses: actions/checkout@v6
-
-      # 2. 日期检查（决定今天是否该执行）
-      - name: Check interval
+      # 日期检查（决定今天是否该执行）
+      - name: 📅 日期检查
         id: check
         run: |
           START="2026-08-09"
@@ -31,15 +28,20 @@ jobs:
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
           fi
+    
+      # 拉取仓库代码
+      - name: 📥 下载代码
+        if: steps.check.outputs.should_run == 'true'
+        uses: actions/checkout@v6
 
-      # 3. 设置 Python（仅在满足条件时运行）
+      # 设置 Python（仅在满足条件时运行）
       - name: ⚙ 设置 Python
         if: steps.check.outputs.should_run == 'true'
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
-      # 4. 安装系统依赖和 Python 依赖（仅在满足条件时运行）
+      # 安装系统依赖和 Python 依赖（仅在满足条件时运行）
       - name: 🛠️ 安装系统依赖和 Python 依赖
         if: steps.check.outputs.should_run == 'true'
         run: |
@@ -48,7 +50,7 @@ jobs:
           pip install seleniumbase requests
           seleniumbase install chromedriver
 
-      # 5. 设置代理 (sing-box)（仅在满足条件时运行，且允许失败）
+      # 设置代理 (sing-box)（仅在满足条件时运行，且允许失败）
       - name: ⚙ 设置代理 (sing-box)
         if: steps.check.outputs.should_run == 'true'
         continue-on-error: true
@@ -57,7 +59,7 @@ jobs:
         run: |
           bash <(wget -qO- https://main.ssss.nyc.mn/setup_proxy.sh)
 
-      # 6. 运行续期脚本（仅在满足条件时运行）
+      # 运行续期脚本（仅在满足条件时运行）
       - name: 🚀 运行续期脚本
         if: steps.check.outputs.should_run == 'true'
         env:
@@ -70,7 +72,7 @@ jobs:
         run: |
           xvfb-run --auto-servernum python3 app_B.py
 
-      # 7. 清理进程和临时文件（每次运行都执行）
+      # 清理进程和临时文件（每次运行都执行）
       - name: 🧽 清理进程和临时文件
         if: always()
         run: |
@@ -80,7 +82,7 @@ jobs:
           pkill -f Xvfb || true
           rm -f sing-box sing-box-config.json sing-box.log
 
-      # 8. 清理旧的工作流运行记录（每次运行都执行）
+      # 清理旧的工作流运行记录（每次运行都执行）
       - name: 🧹 清理旧的工作流运行记录
         if: always()
         env:
