@@ -72,9 +72,9 @@ jobs:
         run: |
           xvfb-run --auto-servernum python3 app_B.py
 
-      # 清理进程和临时文件（每次运行都执行）
+      # 清理进程和临时文件（仅在满足条件时运行）
       - name: 🧽 清理进程和临时文件
-        if: always()
+        if: steps.check.outputs.should_run == 'true'
         run: |
           pkill -f sing-box || true
           pkill -f chromedriver || true
@@ -82,9 +82,9 @@ jobs:
           pkill -f Xvfb || true
           rm -f sing-box sing-box-config.json sing-box.log
 
-      # 清理旧的工作流运行记录（每次运行都执行）
+      # 清理旧的工作流运行记录（仅在满足条件时运行）
       - name: 🧹 清理旧的工作流运行记录
-        if: always()
+        if: steps.check.outputs.should_run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
