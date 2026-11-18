@@ -2,7 +2,7 @@ name: Auto Renew Bot-hosting
 
 on:
   schedule:
-    - cron: '30 22 * * *' # 每天UTC 1点 (北京时间9点, 一般都会推迟),自行根据服务到期时间调整
+    - cron: '5 0 * * *'   # 每天 UTC 00:05（北京时间 08:05，实际一般会推迟），按服务到期时间自行调整
   workflow_dispatch:
 
 jobs:
@@ -10,17 +10,41 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       actions: write
-      contents: read
+      contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - name: 📅 日期检查（手动触发时跳过）
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "🖐️ 手动触发，跳过日期检查，直接运行"
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          START="2026-11-17"
+          TODAY=$(date -u +%F)
+          start_sec=$(date -d "$START" +%s)
+          today_sec=$(date -d "$TODAY" +%s)
+          days=$(( (today_sec - start_sec) / 86400 ))
+          echo "Days since $START: $days"
+          if (( days % 4 == 0 )); then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 📥 下载代码
+        if: steps.check.outputs.should_run == 'true'
+        uses: actions/checkout@v6
 
       - name: ⚙ 设置 Python
+        if: steps.check.outputs.should_run == 'true'
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: 🛠️ 安装系统依赖和 Python 依赖
+        if: steps.check.outputs.should_run == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb x11-utils xdotool scrot fonts-noto-cjk jq wget
@@ -28,6 +52,7 @@ jobs:
           seleniumbase install chromedriver
 
       - name: ⚙ 设置代理 (sing-box)
+        if: steps.check.outputs.should_run == 'true'
         continue-on-error: true
         env:
           NODE_LINK: ${{ secrets.NODE_LINK }}
@@ -35,6 +60,7 @@ jobs:
           bash <(wget -qO- https://main.ssss.nyc.mn/setup_proxy.sh)
 
       - name: 🚀 运行续期脚本
+        if: steps.check.outputs.should_run == 'true'
         env:
           EMAIL: ${{ secrets.EMAIL }}
           PASSWORD: ${{ secrets.PASSWORD }}
@@ -43,8 +69,22 @@ jobs:
         run: |
           xvfb-run --auto-servernum python3 app.py
 
+      - name: 🕒 更新时间
+        if: steps.check.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M:%S')" > time.txt
+          git add time.txt
+          if git diff --cached --quiet; then
+            echo "No need to commit"
+          else
+            git commit -m "⏱️ Auto Update by Github Actions $(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M:%S')"
+            git push origin main
+          fi
+
       - name: 🧽 清理进程和临时文件
-        if: always()
+        if: steps.check.outputs.should_run == 'true'
         run: |
           pkill -f sing-box || true
           pkill -f chromedriver || true
@@ -53,7 +93,7 @@ jobs:
           rm -f sing-box sing-box-config.json sing-box.log
 
       - name: 🧹 清理旧的工作流运行记录
-        if: always()
+        if: steps.check.outputs.should_run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
